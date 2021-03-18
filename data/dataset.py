@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 
+
 class VisdaDataset(Dataset):
     def __init__(self, root, domain):
 
@@ -23,21 +24,17 @@ class VisdaDataset(Dataset):
         return img, label
 
 
+def get_index_to_class():
+
+    with open("/home/louishemadou/dev/maml/data/index_to_class.json") as f:
+        index_to_class = json.load(f)
+    index_to_class = {int(k): v for k, v in index_to_class.items()}
+    return index_to_class
 
 
-dataset = VisdaDataset("/home/louishemadou/VisDA", "real")
+def get_class_to_index():
 
-with open("./index_to_class.json") as f:
-    index_to_class = json.load(f)
-
-for _ in range(20):
-    n = np.random.randint(len(dataset))
-
-    img, label = dataset[n]
-
-    label = index_to_class[str(label)]
-    print(label)
-
-    plt.figure()
-    plt.imshow(img)
-    plt.show()
+    with open("./class_to_index.json") as f:
+        class_to_index = json.load(f)
+    class_to_index = {k: int(v) for k, v in class_to_index.items()}
+    return class_to_index
