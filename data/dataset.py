@@ -8,9 +8,17 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 
 
+def get_label(img_name):
+    label = int(img_name[-14: -11])
+    if label == 344:
+        label = 0
+    return label
+
+
 class VisdaDataset(Dataset):
-    def __init__(self, root, domain, crop=400, size=150):
-    
+    def __init__(self, root, domain, crop=400, size=128,
+                 classes=range(1, 345)):
+
         self.transform = transforms.Compose([transforms.ToTensor(),
                                              transforms.Normalize(0.5, 0.5),
                                              transforms.CenterCrop(crop),
@@ -18,7 +26,10 @@ class VisdaDataset(Dataset):
                                              ])
         self.domain = domain
         self.imgs_path = "/".join([root, domain])
-        self.img_list = os.listdir(self.imgs_path)
+        all_img_list = os.listdir(self.imgs_path)
+
+        self.img_list = [
+            img_name for img_name in all_img_list if get_label(img_name) in classes]
 
     def __len__(self):
         return len(self.img_list)
@@ -27,7 +38,7 @@ class VisdaDataset(Dataset):
         img_name = self.img_list[idx]
         img = Image.open("/".join([self.imgs_path, img_name]))
         img = self.transform(img)
-        label = int(img_name[-14: -11])
+        label = get_label(img_name)
         return img, label
 
 
