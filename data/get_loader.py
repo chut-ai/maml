@@ -3,9 +3,9 @@ from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
 
 
-def get_visda(batch_size, num_workers, root, domain, ratio, crop=400, size=128, classes = range(1, 345)):
+def get_visda(batch_size, num_workers, root, domain, ratio, classes = range(1, 345)):
 
-    dataset = VisdaDataset(root, domain, crop, size, classes)
+    dataset = VisdaDataset(root, domain, classes)
 
     train_size = int(len(dataset)*ratio)
     test_size = len(dataset) - train_size

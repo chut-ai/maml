@@ -8,28 +8,32 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 
 
-def get_label(img_name):
-    label = int(img_name[-14: -11])
-    if label == 344:
-        label = 0
-    return label
-
-
 class VisdaDataset(Dataset):
-    def __init__(self, root, domain, crop=400, size=128,
-                 classes=range(1, 345)):
+    def __init__(self, root, domain, classes=range(1, 345)):
 
-        self.transform = transforms.Compose([transforms.ToTensor(),
-                                             transforms.Normalize(0.5, 0.5),
-                                             transforms.CenterCrop(crop),
-                                             transforms.Resize(size)
-                                             ])
+        self.classes = classes
         self.domain = domain
         self.imgs_path = "/".join([root, domain])
         all_img_list = os.listdir(self.imgs_path)
 
+        self.transform = transforms.Compose([
+            transforms.RandomResizedCrop(224, (1, 1), (1, 1)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+
         self.img_list = [
-            img_name for img_name in all_img_list if get_label(img_name) in classes]
+            img_name for img_name in all_img_list if self.get_label(img_name) in classes]
+
+
+    def get_label(self, img_name, squeeze=False):
+        
+        label = int(img_name[-14: -11])
+        if label == 344:
+            label = 0
+        if squeeze:
+            label = self.classes.index(label)
+        return label
 
     def __len__(self):
         return len(self.img_list)
@@ -38,7 +42,7 @@ class VisdaDataset(Dataset):
         img_name = self.img_list[idx]
         img = Image.open("/".join([self.imgs_path, img_name]))
         img = self.transform(img)
-        label = get_label(img_name)
+        label = self.get_label(img_name, True)
         return img, label
 
 
