@@ -6,7 +6,7 @@ import time
 import matplotlib.pyplot as plt
 from maml.data.get_loader import get_visda
 
-batch_size = 32
+batch_size = 16
 n_class_train = 200
 n_class = 10
 

@@ -6,6 +6,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from maml.data.get_loader import get_visda
+from maml.model import ResNet18, LastLayers
 
 batch_size = 32
 n_class = 200
@@ -17,74 +18,78 @@ trainloader, testloader = get_visda(
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-net = models.resnet18(pretrained=True)
+encoder = ResNet18()
+encoder.to(device)
+encoder.eval()
 
-# Freeze all parameters of the model
+num_features = encoder.in_features
 
-for param in net.parameters():
-    param.requires_grad = False
-
-# Create the last fc, by default requires_grad=True
-num_features = net.fc.in_features
-net.fc = nn.Sequential(
-    nn.Linear(num_features, 1024),
-    nn.ReLU(inplace=True),
-    nn.Linear(1024, n_class))
-
-
-net = net.to(device)
-print(net)
+classifier = LastLayers(num_features, n_class)
+classifier.to(device)
 
 n_epoch = 10
-optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999))
+optimizer = optim.Adam(classifier.parameters(), lr=0.005, betas=(0.9, 0.999))
 criterion = nn.CrossEntropyLoss()
 
-acc_list = []
+acc_list_train = []
+acc_list_test = []
 
 T0 = time.time()
+
+def accuracy(loader):
+    correct = 0
+    with torch.no_grad():
+        for val_imgs, val_labels in loader:
+            val_imgs = val_imgs.to(device).float()
+            val_labels = val_labels.to(device)
+            out = classifier(encoder(val_imgs))
+            predicted = torch.max(out, 1)[1].to(device)
+            correct += (predicted == val_labels).sum()
+        correct_percent = 100*correct/(len(loader)*batch_size)
+    return correct_percent
+
 
 for epoch in range(n_epoch):
 
     for i, data in enumerate(trainloader, 0):
 
-        net.train()
-
         inputs, labels = data
         inputs = inputs.to(device)
         labels = labels.to(device)
 
+        with torch.no_grad():
+            features = encoder(inputs)
+
+        classifier.train()
+
         optimizer.zero_grad()
-        out = net(inputs)
+        out = classifier(features)
         loss = criterion(out, labels)
         loss.backward()
         optimizer.step()
 
-        message = "Epochs: {}/{}, ({:.0f}%) \r".format(epoch+1,
-                                                       n_epoch, 100*i/len(trainloader))
+        message = "Epoch {}/{}, ({:.0f}%) \r".format(epoch+1,
+                                                     n_epoch, 100*i/len(trainloader))
         print(message, sep=" ", end="", flush=True)
 
-    net.eval()
-    correct = 0
-    for val_imgs, val_labels in testloader:
-        val_imgs = val_imgs.to(device).float()
-        val_labels = val_labels.to(device)
-        out = net.forward(val_imgs)
-        predicted = torch.max(out, 1)[1].to(device)
-        correct += (predicted == val_labels).sum()
-    correct_percent = 100*correct/(len(testloader)*batch_size)
+    classifier.eval()
 
-    acc_list.append(correct_percent.cpu())
-    print("\r")
+    test_score = accuracy(testloader)
+    train_score = accuracy(trainloader)
+
+    acc_list_test.append(test_score.cpu())
+    acc_list_train.append(train_score.cpu())
     elapsed = (time.time()-T0)/60
-    print("Test accuracy: {:.3f}, time elapsed (in minuts):{:.0f}".format(
-        correct_percent, elapsed))
+    print("\rEpoch {}, test accuracy: {:.3f}, train accuracy: {:.3f}, {:.0f} minutes elapsed".format(epoch+1, test_score, train_score, elapsed))
 
-torch.save(net, "./resnet34_visda")
+# torch.save(net, "./resnet34_visda")
 
 
-X = range(len(acc_list))
+X = range(len(acc_list_test))
 
 plt.figure(1)
-plt.plot(X, acc_list)
+plt.plot(X, acc_list_test, "k", label="test score")
+plt.plot(X, acc_list_train, "r", label="train score")
+plt.legend()
 plt.title("Accuracy over epochs")
 plt.show()
