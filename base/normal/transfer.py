@@ -6,7 +6,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from maml.data.get_loader import get_visda
-from maml.model import ResNet18, LastLayers
+from maml.base.normal.model import ResNet18, LastLayers
 
 batch_size = 32
 n_class = 200
@@ -26,8 +26,9 @@ num_features = encoder.in_features
 
 classifier = LastLayers(num_features, n_class)
 classifier.to(device)
+print(classifier)
 
-n_epoch = 10
+n_epoch = 5
 optimizer = optim.Adam(classifier.parameters(), lr=0.005, betas=(0.9, 0.999))
 criterion = nn.CrossEntropyLoss()
 
@@ -82,7 +83,7 @@ for epoch in range(n_epoch):
     elapsed = (time.time()-T0)/60
     print("\rEpoch {}, test accuracy: {:.3f}, train accuracy: {:.3f}, {:.0f} minutes elapsed".format(epoch+1, test_score, train_score, elapsed))
 
-# torch.save(net, "./resnet34_visda")
+torch.save(classifier, "./classifier_visda")
 
 
 X = range(len(acc_list_test))

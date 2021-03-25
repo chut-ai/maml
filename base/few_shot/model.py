@@ -42,11 +42,9 @@ class LastLayers(nn.Module):
 
         self.layers = nn.Sequential(
             nn.Linear(num_features, 512),
-            nn.Dropout(),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
             nn.Linear(512, 512),
-            nn.Dropout(),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
             nn.Linear(512, n_class))
