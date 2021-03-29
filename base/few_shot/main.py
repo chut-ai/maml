@@ -10,7 +10,8 @@ from maml.base.few_shot.model import ResNet18, LastLayers
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def accuracy(encoder, classifier, loader, batch_size):
+
+def compute_accuracy(encoder, classifier, loader, batch_size):
     correct = 0
     with torch.no_grad():
         for val_imgs, val_labels in loader:
@@ -22,77 +23,98 @@ def accuracy(encoder, classifier, loader, batch_size):
         correct_percent = 100*correct/(len(loader)*batch_size)
     return correct_percent
 
-def train_and_eval(n_instances, n_monte_carlo):
-    batch_size = n_instances
-    classes = range(10)
-    n_class = len(classes)
+
+def single_train(trainloader, classes, batch_size):
 
     domains = ["clipart", "quickdraw", "painting", "sketch", "infograph"]
-    accuracies = {domain: 0 for domain in domains}
+    n_class = len(classes)
 
-    for n in range(n_monte_carlo):
-        print(n_instances, n)
-        trainloader = get_visda(batch_size, 8, "/home/louishemadou/VisDA", "real", 1, classes, n_instances=n_instances)
+    encoder = ResNet18()
+    encoder.to(device)
+    encoder.eval()
+    num_features = encoder.in_features
+    classifier = LastLayers(num_features, n_class)
+    classifier.to(device)
 
-        encoder = ResNet18()
-        encoder.to(device)
-        encoder.eval()
-        num_features = encoder.in_features
-        classifier = LastLayers(num_features, n_class)
-        classifier.to(device)
+    n_epoch = 10
+    optimizer = optim.Adam(classifier.parameters(),
+                           lr=0.005, betas=(0.9, 0.999))
+    criterion = nn.CrossEntropyLoss()
 
-        n_epoch = 10
-        optimizer = optim.Adam(classifier.parameters(), lr=0.005, betas=(0.9, 0.999))
-        criterion = nn.CrossEntropyLoss()
+    for epoch in range(n_epoch):
 
-        for epoch in range(n_epoch):
+        for data in trainloader:
 
-            for i, data in enumerate(trainloader, 0):
+            inputs, labels = data
+            inputs = inputs.to(device)
+            labels = labels.to(device)
 
-                inputs, labels = data
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+            with torch.no_grad():
+                features = encoder(inputs)
 
-                with torch.no_grad():
-                    features = encoder(inputs)
+            classifier.train()
 
-                classifier.train()
+            optimizer.zero_grad()
+            out = classifier(features)
+            loss = criterion(out, labels)
+            loss.backward()
+            optimizer.step()
 
-                optimizer.zero_grad()
-                out = classifier(features)
-                loss = criterion(out, labels)
-                loss.backward()
-                optimizer.step()
+    classifier.eval()
+    single_accuracy = {}
 
-        classifier.eval()
+    for domain in domains:
+        _, testloader = get_visda(
+            batch_size, 8, "/home/louishemadou/VisDA", domain, 0.5, classes)
+        acc = compute_accuracy(encoder, classifier, testloader, batch_size)
+        single_accuracy[domain] = acc
+
+    return single_accuracy
 
 
-        for domain in domains:
+def train_and_eval(n_instance, n_mc_class, n_mc_instance):
 
-            _, testloader = get_visda(batch_size, 8, "/home/louishemadou/VisDA", domain, 0.7, classes)
+    n_class = 10
+    batch_size = n_instance
 
-            acc = accuracy(encoder, classifier, testloader, batch_size)
-            
-            accuracies[domain] = (1/(n+1))*(n*accuracies[domain] + acc)
+    domains = ["clipart", "quickdraw", "painting", "sketch", "infograph"]
+    accuracy = {domain: 0 for domain in domains}
 
-    return accuracies
+    for i in range(n_mc_class):
+        classes = list(np.random.choice(range(345), n_class, replace=False))
+
+        for j in range(n_mc_instance):
+
+            trainloader = get_visda(
+                batch_size, 8, "/home/louishemadou/VisDA", "real", 1, classes, n_instance)
+
+            single_accuracy = single_train(trainloader, classes, batch_size)
+
+            for domain, value in single_accuracy.items():
+                accuracy[domain] += value
+
+    for domain in accuracy.keys():
+        accuracy[domain] /= n_mc_class*n_mc_instance
+
+    return accuracy
 
 domains = ["clipart", "quickdraw", "painting", "sketch", "infograph"]
-all_accuracies = {domain: [] for domain in domains}
+accuracy_all = {domain: [] for domain in domains}
 
-n_monte_carlo = 20
-n_instances = [2, 5, 10, 20]
+n_instances = range(2, 21)
 
 for n_instance in n_instances:
-    accuracies = train_and_eval(n_instance, n_monte_carlo)
-    for domain, acc in accuracies.items():
-        all_accuracies[domain].append(acc.item())
+    print(n_instance)
+    accuracy = train_and_eval(n_instance, 1, 1)
+    for domain, acc in accuracy.items():
+        accuracy_all[domain].append(acc.item())
 
 colors = ["k", "g", "r", "b", "y"]
 plt.figure()
-for (domain, values), color in zip(all_accuracies.items(), colors):
-    plt.plot(n_instances, values, color, label=domain)
+for (domain, values), color in zip(accuracy_all.items(), colors):
+    plt.scatter(n_instances, values, label=domain, color=color)
 plt.legend()
 plt.xlabel("Nombre de shots")
 plt.ylabel("Précision")
+plt.xticks(n_instances, n_instances)
 plt.show()
