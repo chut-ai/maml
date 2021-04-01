@@ -15,11 +15,30 @@ def open_json(domain):
         data = json.load(f)
     return data
 
+def squeeze(labels):
+    
+    items = []
+    for label in labels:
+        if label not in items:
+            items.append(label)
 
-def make_one_task(data, n_class, n_instance):
+    items = sorted(items)
 
+    squeezed = []
+    for label in labels:
+        squeezed.append(items.index(label))
+    return squeezed
 
-    chosen_labels = np.random.choice(range(1, 346), n_class, False)
+def make_one_task(data, n_class, n_spt, n_qry):
+
+    n_instance = n_spt + n_qry
+    
+    possible_class = []
+    for i in range(1, 346):
+        if len(data[str(i)]) >= n_instance:
+            possible_class.append(i)
+
+    chosen_labels = np.random.choice(possible_class, n_class, False)
 
     instances_labels = []
 
@@ -32,22 +51,22 @@ def make_one_task(data, n_class, n_instance):
     random.shuffle(instances_labels)
 
     instances = [elem[0] for elem in instances_labels]
-    x = torch.stack(instances, 0)
-    labels = [elem[1] for elem in instances_labels]
-    y = torch.Tensor(labels)
+    labels = squeeze([elem[1] for elem in instances_labels])
+    x_spt = torch.stack(instances[:n_spt*n_class], 0)
+    x_qry = torch.stack(instances[n_spt*n_class:], 0)
+    y_spt = torch.Tensor(labels[:n_spt*n_class])
+    y_qry = torch.Tensor(labels[n_spt*n_class:])
 
-    return x, y
+    return x_spt, x_qry, y_spt, y_qry
 
-def make_tasks(domain, n_class, n_instance, n_task):
+def make_tasks(domain, n_class, n_spt, n_qry, task_bsize, n_batch):
     
     data = open_json(domain)
 
-    tasks = [make_one_task(data, n_class, n_instance) for _ in range(n_task)]
+    tasks = [[make_one_task(data, n_class, n_spt, n_qry) for i in range(task_bsize)] for _ in range(n_batch)]
 
     return tasks
 
 if __name__ == "__main__":
-    domain = "clipart"
-    t0 = time.time()
-    tasks = make_tasks(domain, 10, 10, 1000)
-    print(time.time()-t0)
+    data = open_json("real")
+    a = make_one_task(data, 10, 50, 50)

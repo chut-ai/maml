@@ -103,18 +103,24 @@ accuracy_all = {domain: [] for domain in domains}
 
 n_instances = range(2, 21)
 
+t0 = time.time()
+
 for n_instance in n_instances:
     print(n_instance)
+    print(time.time() - t0)
     accuracy = train_and_eval(n_instance, 1, 1)
     for domain, acc in accuracy.items():
         accuracy_all[domain].append(acc.item())
 
+
+
 colors = ["k", "g", "r", "b", "y"]
 plt.figure()
 for (domain, values), color in zip(accuracy_all.items(), colors):
-    plt.scatter(n_instances, values, label=domain, color=color)
+    plt.plot(n_instances, values, label=domain, color=color)
 plt.legend()
 plt.xlabel("Nombre de shots")
 plt.ylabel("Précision")
 plt.xticks(n_instances, n_instances)
+plt.savefig("./accuracies.jpg")
 plt.show()
