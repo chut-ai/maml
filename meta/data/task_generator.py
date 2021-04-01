@@ -13,6 +13,7 @@ def open_json(domain):
 
     with open(json_path, "r") as f:
         data = json.load(f)
+    f.close()
     return data
 
 def squeeze(labels):
