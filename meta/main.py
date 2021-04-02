@@ -16,10 +16,10 @@ net.train()
 
 n_class = 10
 n_spt = 10
-n_qry = 90
-task_bsize = 10
-n_batch = 500
-n_iter_inner_loop = 10
+n_qry = 100
+task_bsize = 50
+n_batch = 1000
+n_iter_inner_loop = 20
 
 print("Loading data ...")
 
