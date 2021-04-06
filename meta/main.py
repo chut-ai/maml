@@ -17,8 +17,8 @@ net.train()
 n_class = 10
 n_spt = 10
 n_qry = 100
-task_bsize = 50
-n_batch = 1000
+task_bsize = 25
+n_batch = 50
 n_iter_inner_loop = 20
 
 print("Loading data ...")
@@ -51,4 +51,5 @@ plt.scatter(X, qry_accs_test, color="r", label="test")
 plt.legend()
 plt.xlabel("Number of task batchs")
 plt.ylabel("Accuracy of query")
+plt.ylim([0.825, 1])
 plt.show()

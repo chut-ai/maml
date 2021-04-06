@@ -29,10 +29,13 @@ def meta_train(db, net, meta_opt, n_iter_inner_loop, task_bsize, device):
                 diffopt.step(spt_loss)
 
             qry_logits = fnet(x_qry)
-            task_qry_acc += (qry_logits.argmax(dim=1) ==
-                             y_qry).sum().item()/(y_qry.size()[0]*len(task_batch))
             qry_loss = F.cross_entropy(qry_logits, y_qry)
             qry_loss.backward()
+            
+            fnet.eval()
+            qry_logits = fnet(x_qry).detach()
+            task_qry_acc += (qry_logits.argmax(dim=1) ==
+                             y_qry).sum().item()/(y_qry.size()[0]*len(task_batch))
 
     meta_opt.step()
     return task_qry_acc

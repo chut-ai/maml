@@ -31,4 +31,5 @@ def meta_test(db, net, n_iter_inner_loop, task_bsize, device):
             qry_logits = fnet(x_qry).detach()
             task_qry_acc += (qry_logits.argmax(dim=1) ==
                              y_qry).sum().item()/(y_qry.size()[0]*len(task_batch))
+
     return task_qry_acc
