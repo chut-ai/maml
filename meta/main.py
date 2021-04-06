@@ -24,7 +24,7 @@ n_iter_inner_loop = 20
 print("Loading data ...")
 
 source = "real"
-target = "painting"
+target = "infograph"
 
 visda = VisdaTask(source, target, n_class, n_qry, n_spt)
 
@@ -36,7 +36,7 @@ qry_accs_test = []
 
 print("Training ...")
 
-for i in range(n_batch):
+for i in range(1, n_batch+1):
     
     qry_train_acc = meta_train(visda, net, meta_opt, n_iter_inner_loop, task_bsize, device)
     qry_accs_train.append(qry_train_acc)
@@ -55,4 +55,6 @@ plt.scatter(X, qry_accs_test, color="r", label="test")
 plt.legend()
 plt.xlabel("Task batchs")
 plt.ylabel("Accuracy of query")
+img_name = "{}.png".format(target)
+plt.savefig(img_name)
 plt.show()
