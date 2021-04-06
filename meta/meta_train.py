@@ -8,7 +8,7 @@ def meta_train(db, net, meta_opt, n_iter_inner_loop, task_bsize, device):
 
     net.train()
 
-    task_batch = db.task_batch("train", task_bsize)
+    task_batch = db.train_task_batch(task_bsize)
 
     inner_opt = optim.SGD(net.parameters(), lr=0.1)
 
@@ -31,7 +31,7 @@ def meta_train(db, net, meta_opt, n_iter_inner_loop, task_bsize, device):
             qry_logits = fnet(x_qry)
             qry_loss = F.cross_entropy(qry_logits, y_qry)
             qry_loss.backward()
-            
+
             fnet.eval()
             qry_logits = fnet(x_qry).detach()
             task_qry_acc += (qry_logits.argmax(dim=1) ==

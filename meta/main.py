@@ -16,45 +16,49 @@ net.train()
 
 n_class = 10
 n_spt = 10
-n_qry = 100
+n_qry = 40
 task_bsize = 50
-n_batch = 200
+n_batch = 50
 n_iter_inner_loop = 20
 
 print("Loading data ...")
 
-source = "real"
-target = "infograph"
-
-visda = VisdaTask(source, target, n_class, n_qry, n_spt)
+visda = VisdaTask(n_class, n_qry, n_spt)
 
 print("Done !")
 
 meta_opt = optim.Adam(net.parameters(), lr=0.001)
 qry_accs_train = []
-qry_accs_test = []
+
+domains = ["clipart", "sketch", "quickdraw", "painting", "infograph"]
+qry_accs_test = {domain: [] for domain in domains}
 
 print("Training ...")
 
 for i in range(1, n_batch+1):
-    
-    qry_train_acc = meta_train(visda, net, meta_opt, n_iter_inner_loop, task_bsize, device)
+
+    qry_train_acc = meta_train(
+        visda, net, meta_opt, n_iter_inner_loop, task_bsize, device)
     qry_accs_train.append(qry_train_acc)
-    qry_test_acc = meta_test(visda, net, n_iter_inner_loop, task_bsize, device)
-    qry_accs_test.append(qry_test_acc)
-    
+
+    for domain in domains:
+        qry_test_acc = meta_test(
+            visda, "real", domain, net, n_iter_inner_loop, task_bsize, device)
+        qry_accs_test[domain].append(qry_test_acc)
+
     message = "Task batch {}/{} ({:.1f}%) \r".format(i, n_batch, 100*i/n_batch)
     print(message, sep=" ", end="", flush=True)
 
 
-X = range(len(qry_accs_train))
-plt.figure()
-plt.title("Meta learning for domain adaptation, source = {}, target = {}".format(source, target))
-plt.scatter(X, qry_accs_train, color="k", label="train")
-plt.scatter(X, qry_accs_test, color="r", label="test")
-plt.legend()
-plt.xlabel("Task batchs")
-plt.ylabel("Accuracy of query")
-img_name = "{}.png".format(target)
-plt.savefig(img_name)
-plt.show()
+for domain in domains:
+    X = range(len(qry_accs_train))
+    plt.figure()
+    plt.title("Meta learning for domain adaptation, source = {}, target = {}".format(
+        "real", domain))
+    plt.scatter(X, qry_accs_train, color="k", label="train")
+    plt.scatter(X, qry_accs_test[domain], color="r", label="test")
+    plt.legend()
+    plt.xlabel("Task batchs")
+    plt.ylabel("Accuracy of query")
+    img_name = "figures/{}.png".format(domain)
+    plt.savefig(img_name)

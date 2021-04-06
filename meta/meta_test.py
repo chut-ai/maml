@@ -4,11 +4,11 @@ import torch.nn.functional as F
 import higher
 
 
-def meta_test(db, net, n_iter_inner_loop, task_bsize, device):
+def meta_test(db, source, target, net, n_iter_inner_loop, task_bsize, device):
 
     net.train()
 
-    task_batch = db.task_batch("test", task_bsize)
+    task_batch = db.test_task_batch(source, target, task_bsize)
 
     inner_opt = optim.SGD(net.parameters(), lr=0.1)
 
