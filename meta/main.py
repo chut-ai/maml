@@ -17,13 +17,16 @@ net.train()
 n_class = 10
 n_spt = 10
 n_qry = 100
-task_bsize = 25
-n_batch = 50
+task_bsize = 50
+n_batch = 200
 n_iter_inner_loop = 20
 
 print("Loading data ...")
 
-visda = VisdaTask("real", n_class, n_qry, n_spt)
+source = "real"
+target = "painting"
+
+visda = VisdaTask(source, target, n_class, n_qry, n_spt)
 
 print("Done !")
 
@@ -46,10 +49,10 @@ for i in range(n_batch):
 
 X = range(len(qry_accs_train))
 plt.figure()
+plt.title("Meta learning for domain adaptation, source = {}, target = {}".format(source, target))
 plt.scatter(X, qry_accs_train, color="k", label="train")
 plt.scatter(X, qry_accs_test, color="r", label="test")
 plt.legend()
-plt.xlabel("Number of task batchs")
+plt.xlabel("Task batchs")
 plt.ylabel("Accuracy of query")
-plt.ylim([0.825, 1])
 plt.show()

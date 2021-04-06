@@ -36,16 +36,18 @@ def squeeze(labels):
 
 
 class VisdaTask:
-    def __init__(self, domain, n_class, n_qry, n_spt):
-        self.domain = domain
-        self.data = open_json(domain)
+    def __init__(self, source, target, n_class, n_qry, n_spt):
+        self.source = source
+        self.target = target
+        self.data_src = open_json(self.source)
+        self.data_tgt = open_json(self.target)
 
         self.n_class = n_class
         self.n_qry = n_qry
         self.n_spt = n_spt
         possible_class = []
         for i in range(1, 346):
-            if len(self.data[str(i)]) >= n_qry + n_spt:
+            if min(len(self.data_src[str(i)]), len(self.data_tgt[str(i)])) >= max(n_qry, n_spt):
                 possible_class.append(i)
         n_test_class = int(len(possible_class)/2)
         n_train_class = len(possible_class) - n_test_class
@@ -66,22 +68,34 @@ class VisdaTask:
 
         chosen_labels = np.random.choice(class_list, self.n_class, False)
 
-        chosen_data = []
-
+        spt_data = []
         for label in chosen_labels:
             indexes = np.random.choice(
-                range(len(self.data[str(label)])), self.n_qry+self.n_spt, False)
+                range(len(self.data_src[str(label)])), self.n_spt, False)
             for index in indexes:
-                instance = torch.Tensor(self.data[str(label)][index])
-                chosen_data.append([instance, label])
-        random.shuffle(chosen_data)
+                instance = torch.Tensor(self.data_src[str(label)][index])
+                spt_data.append([instance, label])
+        random.shuffle(spt_data)
+        
+        qry_data = []
+        for label in chosen_labels:
+            indexes = np.random.choice(
+                range(len(self.data_tgt[str(label)])), self.n_qry, False)
+            for index in indexes:
+                instance = torch.Tensor(self.data_tgt[str(label)][index])
+                qry_data.append([instance, label])
+        random.shuffle(qry_data)
+        
+        instances_spt = [elem[0] for elem in spt_data]
+        labels_spt = squeeze([elem[1] for elem in spt_data])
 
-        instances = [elem[0] for elem in chosen_data]
-        labels = squeeze([elem[1] for elem in chosen_data])
-        x_spt = torch.stack(instances[:self.n_spt*self.n_class], 0)
-        x_qry = torch.stack(instances[self.n_spt*self.n_class:], 0)
-        y_spt = torch.Tensor(labels[:self.n_spt*self.n_class])
-        y_qry = torch.Tensor(labels[self.n_spt*self.n_class:])
+        instances_qry = [elem[0] for elem in qry_data]
+        labels_qry = squeeze([elem[1] for elem in qry_data])
+       
+        x_spt = torch.stack(instances_spt, 0)
+        x_qry = torch.stack(instances_qry, 0)
+        y_spt = torch.Tensor(labels_spt)
+        y_qry = torch.Tensor(labels_qry)
 
         return x_spt, x_qry, y_spt, y_qry
 
