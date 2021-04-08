@@ -24,7 +24,8 @@ domains = ["clipart", "quickdraw", "painting", "sketch", "infograph"]
 domain_acc = {domain: 0 for domain in domains}
 
 
-n_mc = 25
+n_mc = 100
+
 for i, mc in enumerate(range(n_mc)):
     possible_classes = [c for c in range(345) if c not in train_classes]
     n_poss = len(possible_classes)
@@ -41,13 +42,13 @@ for i, mc in enumerate(range(n_mc)):
     encoder.eval()
 
     classifier = torch.load("./saved/classifier_visda")
-    num_features = classifier.layers[8].in_features
+    num_features = classifier.layers[9].in_features
 
-    classifier.layers[8] = nn.Linear(num_features, n_class)
+    classifier.layers[9] = nn.Linear(num_features, n_class)
     classifier.to(device)
 
     n_epoch = 20
-    optimizer = optim.SGD(classifier.parameters(), lr=0.1)
+    optimizer = optim.Adam(classifier.parameters(), lr=0.001)
     criterion = nn.CrossEntropyLoss()
 
     acc_list_train = []
@@ -74,11 +75,10 @@ for i, mc in enumerate(range(n_mc)):
             loss.backward()
             optimizer.step()
 
-            message = "MC {} Epoch {}/{} ({:.0f}%) \r".format(mc, epoch+1,
+            message = "MC {}/{} Epoch {}/{} ({:.0f}%) \r".format(mc+1, n_mc, epoch+1,
                                                               n_epoch, 100*i/len(trainloader))
             print(message, sep=" ", end="", flush=True)
 
-    print("\n")
     classifier.eval()
 
     def accuracy(loader):
@@ -99,4 +99,4 @@ for i, mc in enumerate(range(n_mc)):
             batch_size, 8, "/home/louishemadou/VisDA", [domain], 0.5, classes)
 
         domain_acc[domain] += accuracy(target_test)/n_mc
-    print(domain_acc)
+print(domain_acc)

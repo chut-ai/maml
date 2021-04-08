@@ -50,6 +50,9 @@ for i in range(1, n_batch+1):
     message = "Task batch {}/{} ({:.1f}%) \r".format(i, n_batch, 100*i/n_batch)
     print(message, sep=" ", end="", flush=True)
 
+    if i % 100 == 0:
+        graph(qry_accs_train, qry_accs_test, domains)
+
 
 for domain in domains:
     X = range(len(qry_accs_train))

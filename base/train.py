@@ -82,13 +82,16 @@ for epoch in range(n_epoch):
 
     classifier.eval()
 
-    test_score = accuracy(testloader)
-    train_score = accuracy(trainloader)
 
-    acc_list_test.append(test_score.cpu())
-    acc_list_train.append(train_score.cpu())
-    elapsed = (time.time()-T0)/60
-    print("\rEpoch {}, test accuracy: {:.3f}, train accuracy: {:.3f}, {:.0f} minutes elapsed".format(epoch+1, test_score, train_score, elapsed))
+    # acc_list_test.append(test_score.cpu())
+    # acc_list_train.append(train_score.cpu())
+    # elapsed = (time.time()-T0)/60
+    # print("\rEpoch {}, test accuracy: {:.3f}, train accuracy: {:.3f}, {:.0f} minutes elapsed".format(epoch+1, test_score, train_score, elapsed))
+
+test_score = accuracy(testloader)
+train_score = accuracy(trainloader)
+
+print("train score {} test score {}".format(train_score, test_score))
 
 torch.save(classifier, "./saved/classifier_visda")
 
