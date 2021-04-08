@@ -6,15 +6,23 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from maml.data.get_loader import get_visda
-from maml.base.normal.model import ResNet18, LastLayers
+from maml.base.model import ResNet18, LastLayers
 
 batch_size = 32
 n_class = 200
 
-classes = list(np.random.choice(range(334), n_class, replace=False))
+classes = list(np.random.choice(range(345), n_class, replace=False))
+
+f = open("./saved/classes.txt", "w")
+
+for c in classes:
+    f.write("%i\n" % c)
+f.close()
+
+domains = ["real", "quickdraw", "painting", "clipart", "infograph", "sketch"]
 
 trainloader, testloader = get_visda(
-    batch_size, 8, "/home/louishemadou/VisDA", "real", 0.7, classes)
+    batch_size, 8, "/home/louishemadou/VisDA", domains, 0.7, classes)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -26,7 +34,6 @@ num_features = encoder.in_features
 
 classifier = LastLayers(num_features, n_class)
 classifier.to(device)
-print(classifier)
 
 n_epoch = 5
 optimizer = optim.Adam(classifier.parameters(), lr=0.005, betas=(0.9, 0.999))
@@ -83,7 +90,8 @@ for epoch in range(n_epoch):
     elapsed = (time.time()-T0)/60
     print("\rEpoch {}, test accuracy: {:.3f}, train accuracy: {:.3f}, {:.0f} minutes elapsed".format(epoch+1, test_score, train_score, elapsed))
 
-torch.save(classifier, "./classifier_visda")
+torch.save(classifier, "./saved/classifier_visda")
+
 
 
 X = range(len(acc_list_test))

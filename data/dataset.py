@@ -1,6 +1,7 @@
 import torch
 import os
 import json
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -9,12 +10,20 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class VisdaDataset(Dataset):
-    def __init__(self, root, domain, labels=range(345), n_instances=-1):
+    def __init__(self, root, domains, labels=range(345), n_instances=-1):
 
         self.labels = labels
-        self.domain = domain
-        self.imgs_path = "/".join([root, domain])
-        all_img_list = os.listdir(self.imgs_path)
+        self.domains = domains
+        self.imgs_path = ["/".join([root, domain]) for domain in self.domains]
+        
+        all_img_list = []
+
+        for path in self.imgs_path:
+            for dirpath, _, filenames in os.walk(path):
+                for f in filenames:
+                    all_img_list.append(os.path.join(dirpath, f))
+
+        random.shuffle(all_img_list)
 
         self.transform = transforms.Compose([
             transforms.RandomResizedCrop(224, (1, 1), (1, 1)),
@@ -56,7 +65,7 @@ class VisdaDataset(Dataset):
 
     def __getitem__(self, idx):
         img_name = self.img_list[idx]
-        img = Image.open("/".join([self.imgs_path, img_name]))
+        img = Image.open(img_name)
         img = self.transform(img)
         label = self.get_label(img_name, True)
         return img, label

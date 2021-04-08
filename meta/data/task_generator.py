@@ -40,14 +40,15 @@ class VisdaTask:
                         "sketch", "quickdraw", "painting"]
         self.data = {domain: open_json(domain) for domain in self.domains}
 
-
         self.n_class = n_class
         self.n_qry = n_qry
         self.n_spt = n_spt
         possible_class = []
         for i in range(1, 346):
-            if min([len(self.data[domain][str(i)]) for domain in self.domains]) >= n_qry + n_spt:
+            if min([len(self.data[domain][str(i)]) for domain in self.domains]) >= n_spt:
                 possible_class.append(i)
+
+        print("{} classes used".format(len(possible_class)))
         n_test_class = int(len(possible_class)/2)
         n_train_class = len(possible_class) - n_test_class
 
@@ -60,7 +61,10 @@ class VisdaTask:
 
         chosen_labels = np.random.choice(self.train_class, self.n_class, False)
 
-        spt_domain = self.domains[int(np.random.randint(0, 6))]
+        spt_domain, qry_domain = np.random.choice(range(6), 2, False)
+        spt_domain = self.domains[spt_domain]
+        qry_domain = self.domains[qry_domain]
+
         spt_data = []
         for label in chosen_labels:
             all_instances = self.data[spt_domain][str(label)]
@@ -70,11 +74,14 @@ class VisdaTask:
                 spt_data.append([instance, label])
         random.shuffle(spt_data)
 
-        qry_domain = self.domains[int(np.random.randint(0, 6))]
         qry_data = []
         for label in chosen_labels:
             all_instances = self.data[qry_domain][str(label)]
-            indexes = np.random.choice(len(all_instances), self.n_qry, False)
+            n_img = len(all_instances)
+            if self.n_qry > n_img:
+                indexes = range(n_img)
+            else:
+                indexes = np.random.choice(n_img, self.n_qry, False)
             for index in indexes:
                 instance = torch.Tensor(all_instances[index])
                 qry_data.append([instance, label])
@@ -109,7 +116,11 @@ class VisdaTask:
         qry_data = []
         for label in chosen_labels:
             all_instances = self.data[target][str(label)]
-            indexes = np.random.choice(len(all_instances), self.n_qry, False)
+            n_img = len(all_instances)
+            if self.n_qry > n_img:
+                indexes = range(n_img)
+            else:
+                indexes = np.random.choice(n_img, self.n_qry, False)
             for index in indexes:
                 instance = torch.Tensor(all_instances[index])
                 qry_data.append([instance, label])

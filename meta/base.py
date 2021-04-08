@@ -1,13 +1,8 @@
 from maml.meta.data.task_generator import VisdaTask
 from maml.meta.model import DenseNet
-from maml.meta.meta_train import meta_train
 from maml.meta.meta_test import meta_test
-from maml.meta.graph import graph
 import matplotlib.pyplot as plt
-import torch.optim as optim
 import torch
-import torch.nn.functional as F
-import higher
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -17,9 +12,9 @@ net.train()
 
 n_class = 10
 n_spt = 10
-n_qry = 100
+n_qry = 40
 task_bsize = 50
-n_batch = 3000
+n_batch = 50
 n_iter_inner_loop = 20
 
 print("Loading data ...")
@@ -28,19 +23,12 @@ visda = VisdaTask(n_class, n_qry, n_spt)
 
 print("Done !")
 
-meta_opt = optim.Adam(net.parameters(), lr=0.001)
-qry_accs_train = []
-
 domains = ["clipart", "sketch", "quickdraw", "painting", "infograph"]
 qry_accs_test = {domain: [] for domain in domains}
 
 print("Training ...")
 
 for i in range(1, n_batch+1):
-
-    qry_train_acc = meta_train(
-        visda, net, meta_opt, n_iter_inner_loop, task_bsize, device)
-    qry_accs_train.append(qry_train_acc)
 
     for domain in domains:
         qry_test_acc = meta_test(
@@ -51,15 +39,8 @@ for i in range(1, n_batch+1):
     print(message, sep=" ", end="", flush=True)
 
 
+message = "\nAverage accuracies :\n"
+
 for domain in domains:
-    X = range(len(qry_accs_train))
-    plt.figure()
-    plt.title("Meta learning for domain adaptation, source = {}, target = {}".format(
-        "real", domain))
-    plt.scatter(X, qry_accs_train, color="k", label="train")
-    plt.scatter(X, qry_accs_test[domain], color="r", label="test")
-    plt.legend()
-    plt.xlabel("Task batchs")
-    plt.ylabel("Accuracy of query")
-    img_name = "figures/meta/{}.png".format(domain)
-    plt.savefig(img_name)
+    avg_acc = 100*sum(qry_accs_test[domain])/len(qry_accs_test[domain])
+    print("{} : {:.3f}%".format(domain, avg_acc))

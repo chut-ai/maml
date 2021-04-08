@@ -41,13 +41,19 @@ class LastLayers(nn.Module):
         super(LastLayers, self).__init__()
 
         self.layers = nn.Sequential(
-            nn.Linear(num_features, 512),
+            nn.Dropout(),
+            nn.Linear(num_features, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
-            nn.Linear(512, 512),
-            nn.BatchNorm1d(512),
+            nn.Dropout(),
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
             nn.ReLU(inplace=True),
-            nn.Linear(512, n_class))
+            nn.Linear(256, n_class))
 
     def forward(self, x):
         x = self.layers(x)
