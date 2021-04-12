@@ -21,7 +21,7 @@ def meta_test(db, source, target, net, n_iter_inner_loop, task_bsize, device):
         x_qry = x_qry.to(device)
         y_qry = y_qry.to(device, dtype=torch.int64)
 
-        with higher.innerloop_ctx(net, inner_opt, device, copy_initial_weights=False) as (fnet, diffopt):
+        with higher.innerloop_ctx(net, inner_opt, device, track_higher_grads=False) as (fnet, diffopt):
             for _ in range(n_iter_inner_loop):
                 spt_logits = fnet(x_spt)
                 spt_loss = F.cross_entropy(spt_logits, y_spt)

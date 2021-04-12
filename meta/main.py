@@ -1,5 +1,5 @@
 from maml.meta.data.task_generator import VisdaTask
-from maml.meta.model import DenseNet
+from maml.meta.model import DenseNet, DenseNet
 from maml.meta.meta_train import meta_train
 from maml.meta.meta_test import meta_test
 from maml.meta.graph import graph
@@ -19,8 +19,8 @@ n_class = 10
 n_spt = 10
 n_qry = 100
 task_bsize = 50
-n_batch = 3000
-n_iter_inner_loop = 20
+n_batch = 200
+n_iter_inner_loop = 10
 
 print("Loading data ...")
 
@@ -50,7 +50,7 @@ for i in range(1, n_batch+1):
     message = "Task batch {}/{} ({:.1f}%) \r".format(i, n_batch, 100*i/n_batch)
     print(message, sep=" ", end="", flush=True)
 
-    if i % 100 == 0:
+    if i % 10 == 0:
         graph(qry_accs_train, qry_accs_test, domains)
 
 

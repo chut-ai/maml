@@ -49,8 +49,8 @@ class VisdaTask:
                 possible_class.append(i)
 
         print("{} classes used".format(len(possible_class)))
-        n_test_class = int(len(possible_class)/2)
-        n_train_class = len(possible_class) - n_test_class
+        n_train_class = 200
+        n_test_class = n_train_class - len(possible_class)
 
         self.train_class = list(np.random.choice(
             possible_class, n_train_class, False))
