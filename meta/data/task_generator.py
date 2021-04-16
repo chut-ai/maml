@@ -10,7 +10,7 @@ from PIL import Image
 
 def open_json(domain):
 
-    json_path = "/home/louishemadou/VisDA_encoded/" + domain + ".json"
+    json_path = "/home/louishemadou/data/VisDA_encoded/" + domain + ".json"
 
     with open(json_path, "r") as f:
         data = json.load(f)
@@ -34,7 +34,7 @@ def squeeze(labels):
 
 
 class VisdaTask:
-    def __init__(self, n_class, n_qry, n_spt):
+    def __init__(self, n_class, n_qry, n_spt, n_train_class=200):
 
         self.domains = ["real", "clipart", "infograph",
                         "sketch", "quickdraw", "painting"]
@@ -48,8 +48,6 @@ class VisdaTask:
             if min([len(self.data[domain][str(i)]) for domain in self.domains]) >= n_spt:
                 possible_class.append(i)
 
-        print("{} classes used".format(len(possible_class)))
-        n_train_class = 345
         n_test_class = n_train_class - len(possible_class)
 
         self.train_class = list(np.random.choice(
@@ -61,7 +59,7 @@ class VisdaTask:
 
         chosen_labels = np.random.choice(self.train_class, self.n_class, False)
 
-        spt_domain, qry_domain = np.random.choice(range(6), 2, False)
+        spt_domain, qry_domain = np.random.choice(range(len(self.domains)), 2, False)
         spt_domain = self.domains[spt_domain]
         qry_domain = self.domains[qry_domain]
 
