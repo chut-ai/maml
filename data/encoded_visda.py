@@ -7,10 +7,12 @@ import torch.nn as nn
 import numpy as np
 from PIL import Image
 
+DEFAULT_PATH = "/home/louishemadou/data/VisDA_encoded/"
 
-def open_json(domain):
 
-    json_path = "/home/louishemadou/data/VisDA_encoded/" + domain + ".json"
+def open_json(domain, path):
+
+    json_path = path + domain + ".json"
 
     with open(json_path, "r") as f:
         data = json.load(f)
@@ -33,12 +35,14 @@ def squeeze(labels):
     return squeezed
 
 
-class VisdaTask:
-    def __init__(self, n_class, n_qry, n_spt, n_train_class=200):
+class EncodedVisdaTask:
+    def __init__(self, n_class, n_qry, n_spt,
+                 path=DEFAULT_PATH, n_train_class=200):
 
         self.domains = ["real", "clipart", "infograph",
                         "sketch", "quickdraw", "painting"]
-        self.data = {domain: open_json(domain) for domain in self.domains}
+        self.domains = ["real", "quickdraw"]
+        self.data = {domain: open_json(domain, path) for domain in self.domains}
 
         self.n_class = n_class
         self.n_qry = n_qry
@@ -55,52 +59,14 @@ class VisdaTask:
         self.test_class = [
             x for x in possible_class if x not in self.train_class]
 
-    def train_task(self):
+    def task(self, task_classes, source=None, target=None):
 
-        chosen_labels = np.random.choice(self.train_class, self.n_class, False)
+        chosen_labels = np.random.choice(task_classes, self.n_class, False)
 
-        spt_domain, qry_domain = np.random.choice(range(len(self.domains)), 2, False)
-        spt_domain = self.domains[spt_domain]
-        qry_domain = self.domains[qry_domain]
-
-        spt_data = []
-        for label in chosen_labels:
-            all_instances = self.data[spt_domain][str(label)]
-            indexes = np.random.choice(len(all_instances), self.n_spt, False)
-            for index in indexes:
-                instance = torch.Tensor(all_instances[index])
-                spt_data.append([instance, label])
-        random.shuffle(spt_data)
-
-        qry_data = []
-        for label in chosen_labels:
-            all_instances = self.data[qry_domain][str(label)]
-            n_img = len(all_instances)
-            if self.n_qry > n_img:
-                indexes = range(n_img)
-            else:
-                indexes = np.random.choice(n_img, self.n_qry, False)
-            for index in indexes:
-                instance = torch.Tensor(all_instances[index])
-                qry_data.append([instance, label])
-        random.shuffle(qry_data)
-
-        instances_spt = [elem[0] for elem in spt_data]
-        labels_spt = squeeze([elem[1] for elem in spt_data])
-
-        instances_qry = [elem[0] for elem in qry_data]
-        labels_qry = squeeze([elem[1] for elem in qry_data])
-
-        x_spt = torch.stack(instances_spt, 0)
-        x_qry = torch.stack(instances_qry, 0)
-        y_spt = torch.Tensor(labels_spt)
-        y_qry = torch.Tensor(labels_qry)
-
-        return x_spt, x_qry, y_spt, y_qry
-
-    def test_task(self, source, target):
-
-        chosen_labels = np.random.choice(self.test_class, self.n_class, False)
+        if source is None:
+            id1, id2 = list(np.random.choice(len(self.domains), 2, False))
+            source = self.domains[id1]
+            target = self.domains[id2]
 
         spt_data = []
         for label in chosen_labels:
@@ -137,14 +103,16 @@ class VisdaTask:
 
         return x_spt, x_qry, y_spt, y_qry
 
-    def train_task_batch(self, task_bsize):
+    def task_batch(self, task_bsize, mode, source=None, target=None):
 
-        tasks = [self.train_task() for _ in range(task_bsize)]
+        if mode == "train":
+            task_classes = self.train_class
+        elif mode == "test":
+            task_classes = self.test_class
+        else:
+            raise "WrongModeError"
 
-        return tasks
-
-    def test_task_batch(self, source, target, task_bsize):
-
-        tasks = [self.test_task(source, target) for _ in range(task_bsize)]
+        tasks = [self.task(task_classes, source, target)
+                 for _ in range(task_bsize)]
 
         return tasks
