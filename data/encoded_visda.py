@@ -37,25 +37,26 @@ def squeeze(labels):
 
 class EncodedVisdaTask:
     def __init__(self, n_class, n_qry, n_spt,
-                 path=DEFAULT_PATH, n_train_class=200):
+                 path=DEFAULT_PATH, train_class=None):
 
         self.domains = ["real", "clipart", "infograph",
                         "sketch", "quickdraw", "painting"]
-        self.domains = ["real", "quickdraw"]
         self.data = {domain: open_json(domain, path) for domain in self.domains}
 
         self.n_class = n_class
         self.n_qry = n_qry
         self.n_spt = n_spt
-        possible_class = []
-        for i in range(1, 346):
-            if min([len(self.data[domain][str(i)]) for domain in self.domains]) >= n_spt:
-                possible_class.append(i)
+        possible_class = range(1, 346)
+        # for i in range(1, 346):
+            # if min([len(self.data[domain][str(i)]) for domain in self.domains]) >= n_spt:
+                # possible_class.append(i)
 
-        n_test_class = n_train_class - len(possible_class)
+        if train_class is not None:
+            self.train_class = train_class
+        else:
+            self.train_class = list(np.random.choice(
+                possible_class, 200, False))
 
-        self.train_class = list(np.random.choice(
-            possible_class, n_train_class, False))
         self.test_class = [
             x for x in possible_class if x not in self.train_class]
 
@@ -71,7 +72,11 @@ class EncodedVisdaTask:
         spt_data = []
         for label in chosen_labels:
             all_instances = self.data[source][str(label)]
-            indexes = np.random.choice(len(all_instances), self.n_spt, False)
+            n_img = len(all_instances)
+            if self.n_spt > n_img:
+                indexes = range(n_img)
+            else:
+                indexes = np.random.choice(len(all_instances), self.n_spt, False)
             for index in indexes:
                 instance = torch.Tensor(all_instances[index])
                 spt_data.append([instance, label])

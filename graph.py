@@ -10,6 +10,7 @@ def draw_acc(k_fig, train_accs, test_accs, path, title):
     plt.scatter(X1, train_accs, color="k", label="train")
     plt.scatter(X2, test_accs, color="r", label="test")
     plt.legend()
+    plt.grid()
     plt.xlabel("Task batchs")
     plt.ylabel("Query accuracy")
     plt.title(title)

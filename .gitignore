@@ -127,3 +127,17 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Vim
+*.swp
+*.swo
+*.swn
+
+**/figures
+**/pickle
+**/snapshots
+
+*.txt
+
+# Pytorch models
+*.pt
