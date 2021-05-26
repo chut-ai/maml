@@ -7,11 +7,12 @@ import torch.nn as nn
 import numpy as np
 from PIL import Image
 
-DEFAULT_PATH = "/home/louishemadou/data/office31_encoded/"
-
+DEFAULT_PATH = "./json/"
 
 def open_json(domain, path):
+
     json_path = path + domain + ".json"
+
     with open(json_path, "r") as f:
         data = json.load(f)
     f.close()
@@ -33,25 +34,29 @@ def squeeze(labels):
     return squeezed
 
 
-class EncodedOfficeTask:
-    def __init__(self, n_class, n_qry, n_spt, path=DEFAULT_PATH):
+class EncodedVisdaTask:
+    def __init__(self, n_class, n_qry, n_spt, domains, path=DEFAULT_PATH, train_class=None):
 
-        self.domains = ["webcam", "dslr", "amazon"]
+        self.domains = domains
         self.data = {domain: open_json(domain, path) for domain in self.domains}
 
         self.n_class = n_class
         self.n_qry = n_qry
         self.n_spt = n_spt
-        possible_class = range(0, 31)
-        # for i in range(1, 346):
-            # if min([len(self.data[domain][str(i)]) for domain in self.domains]) >= n_spt:
-                # possible_class.append(i)
+        possible_class = range(345)
 
-        self.test_class = possible_class
+        if train_class is not None:
+            self.train_class = train_class
+        else:
+            self.train_class = list(np.random.choice(
+                possible_class, 200, False))
 
-    def task(self, source=None, target=None):
+        self.test_class = [
+            x for x in possible_class if x not in self.train_class]
 
-        chosen_labels = np.random.choice(self.test_class, self.n_class, False)
+    def task(self, task_classes, source=None, target=None):
+
+        chosen_labels = np.random.choice(task_classes, self.n_class, False)
 
         if source is None:
             id1, id2 = list(np.random.choice(len(self.domains), 2, False))
@@ -97,8 +102,16 @@ class EncodedOfficeTask:
 
         return x_spt, x_qry, y_spt, y_qry
 
-    def task_batch(self, task_bsize, source=None, target=None):
+    def task_batch(self, task_bsize, mode, source=None, target=None):
 
-        tasks = [self.task(source, target) for _ in range(task_bsize)]
+        if mode == "train":
+            task_classes = self.train_class
+        elif mode == "test":
+            task_classes = self.test_class
+        else:
+            raise "WrongModeError"
+
+        tasks = [self.task(task_classes, source, target)
+                 for _ in range(task_bsize)]
 
         return tasks
