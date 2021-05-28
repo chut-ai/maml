@@ -1,8 +1,9 @@
-from maml.base.pretrain.dataset import VisdaDataset
+from maml.data.dataset import VisdaDataset
 from torch.utils.data import random_split, DataLoader
 from torchvision import transforms
 
-DEFAULT_PATH = "/home/louishemadou/data/VisDA_encoded/"
+DEFAULT_PATH = "./json/"
+
 
 def get_visda(batch_size, domains, ratio, classes=range(1, 346), num_workers=8, path=DEFAULT_PATH):
 

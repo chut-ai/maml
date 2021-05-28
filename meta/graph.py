@@ -1,6 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
-import torch
 
 def draw_acc(train_accs, test_accs, path, title):
 

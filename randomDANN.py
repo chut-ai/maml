@@ -2,41 +2,35 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-from maml.base.models import Discriminator
-from maml.data.encoded_visda import EncodedVisdaTask
-
-f = open("../../train_class.txt", "r")
-train_class = [int(cls) for cls in f.readlines()]
-
+from models import DenseNet, Discriminator
+from data.task_generator import EncodedVisdaTask
 
 domain_loss = nn.BCELoss()
 class_loss = nn.CrossEntropyLoss()
 
-
 n_epochs = 100
 n_class = 10
-max_qry = 500
-max_spt = 500
-task_bsize = 100
+n_qry = 200
+n_spt = 200
+task_bsize = 10
 
 
 def get_lambda(epoch, n_epochs):
     p = epoch/n_epochs
     return 2. / (1+np.exp(-10.*p)) - 1
 
-
 source = "real"
 target = "infograph"
 
-visda = EncodedVisdaTask(n_class, max_qry, max_spt, train_class=train_class)
+visda = EncodedVisdaTask(n_class, n_qry, n_spt, [source, target], "./data/json/")
 
 tasks = visda.task_batch(task_bsize, "test", source, target)
 
 n_disc = 10
-global_acc = 0
+accs = []
 
 for i, task in enumerate(tasks):
-    net = torch.load("./pt/{}_{}.pt".format(source, target))
+    net = DenseNet()
     E = net.encoder.cuda()
     C = net.classifier.cuda()
     D = Discriminator().cuda()
@@ -47,18 +41,16 @@ for i, task in enumerate(tasks):
     x_spt, x_qry, y_spt, y_qry = task
     x_spt, y_spt = x_spt.cuda(), y_spt.cuda().type(torch.int64)
     x_qry, y_qry = x_qry.cuda(), y_qry.cuda().type(torch.int64)
-    n_spt = x_spt.size()[0]
-    n_qry = x_qry.size()[0]
-    domain_src = torch.ones(n_spt, 1).cuda()
-    domain_tgt = torch.zeros(int(n_qry/2), 1).cuda()
+    domain_src = torch.ones(x_spt.size(0), 1).cuda()
+    domain_tgt = torch.zeros(int(x_qry.size(0)/2), 1).cuda()
     domain_labels = torch.cat([domain_src, domain_tgt], dim=0)
     for epoch in range(1, n_epochs+1):
 
         E.train()
         C.train()
-
+        D.train()
         # Training discriminator
-        x = torch.cat([x_spt, x_qry[:int(n_qry/2)]], dim=0)
+        x = torch.cat([x_spt, x_qry[:int(x_qry.size(0)/2)]], dim=0)
         h = E(x)
 
         for _ in range(n_disc):
@@ -68,7 +60,7 @@ for i, task in enumerate(tasks):
             Ld.backward()
             D_opt.step()
 
-        c = C(h[:n_spt])
+        c = C(h[:x_spt.size(0)])
         y = D(h)
         Lc = class_loss(c, y_spt)
         Ld = domain_loss(y, domain_labels)
@@ -83,14 +75,16 @@ for i, task in enumerate(tasks):
 
         C_opt.step()
         E_opt.step()
-
-    E.eval()
     C.eval()
+    E.eval()
     with torch.no_grad():
-        x2 = x_qry[int(n_qry/2):]
-        y2 = y_qry[int(n_qry/2):]
+        x2 = x_qry[int(x_qry.size(0)/2):]
+        y2 = y_qry[int(x_qry.size(0)/2):]
         y2_hat = C(E(x2))
-        acc2 = 100*torch.eq(y2_hat.argmax(dim=1), y2).sum().item()/y2.size()[0]
-    global_acc += acc2/len(tasks)
+        acc2 = torch.eq(y2_hat.argmax(dim=1), y2).sum().item()/y2.size()[0]
+    accs.append(acc2)
 
-print(global_acc)
+avg = np.mean(accs)
+std = np.std(accs)
+
+print("{} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))

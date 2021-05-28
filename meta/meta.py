@@ -2,15 +2,15 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 import higher
-import time
+
 
 def L2_loss(net, fnet, lambdas):
     L = 0
     for p1, p2, lamb in zip(net.parameters(), fnet.parameters(), lambdas):
         L += (torch.exp(-lamb)*(p1-p2)**2).sum()
     return L
+
 
 class Meta(nn.Module):
     def __init__(self, net):
@@ -21,8 +21,7 @@ class Meta(nn.Module):
 
         self.net.train()
 
-        inner_opt = optim.SGD(self.net.parameters(), lr=inner_lr)
-
+        inner_opt = optim.Adam(self.net.parameters(), lr=inner_lr)
 
         qry_acc = 0
 
@@ -51,7 +50,7 @@ class Meta(nn.Module):
 
         self.net.train()
 
-        inner_opt = optim.SGD(self.net.parameters(), lr=inner_lr)
+        inner_opt = optim.Adam(self.net.parameters(), lr=inner_lr)
 
         qry_acc = 0
 

@@ -2,26 +2,24 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-from maml.base.models import DenseNet
-from maml.data.task_generator import EncodedVisdaTask
-
-class_loss = nn.CrossEntropyLoss()
+from models import DenseNet
+from data.task_generator import EncodedVisdaTask
 
 n_epochs = 100
 n_class = 10
-max_qry = 200
-max_spt = 200
+n_qry = 200
+n_spt = 200
 task_bsize = 200
 
 source = "real"
-target = "quickdraw"
+target = "infograph"
 
-
-visda = EncodedVisdaTask(n_class, max_qry, max_spt, [source, target], path="../data/json/")
+visda = EncodedVisdaTask(n_class, n_qry, n_spt, [
+                         source, target], path="./data/json/")
 
 tasks = visda.task_batch(task_bsize, "test", source, target)
 
-global_acc = 0
+accs = []
 
 for i, task in enumerate(tasks):
     net = DenseNet().cuda()
@@ -32,18 +30,21 @@ for i, task in enumerate(tasks):
     x_spt, y_spt = x_spt.cuda(), y_spt.cuda().type(torch.int64)
     x_qry, y_qry = x_qry.cuda(), y_qry.cuda().type(torch.int64)
     for epoch in range(1, n_epochs+1):
-        
+
         net.train()
         optimizer.zero_grad()
         y_hat = net(x_spt)
         loss = criterion(y_hat, y_spt)
         loss.backward()
         optimizer.step()
-    
-    # net.eval()
+
+    net.eval()
     with torch.no_grad():
         y_hat = net(x_qry)
-        acc = 100*torch.eq(y_hat.argmax(dim=1), y_qry).sum().item()/y_qry.size()[0]
-    global_acc += acc/len(tasks)
+        acc = torch.eq(y_hat.argmax(dim=1), y_qry).sum().item()/y_qry.size()[0]
+    accs.append(acc)
 
-print(global_acc)
+avg = np.mean(accs)
+std = np.std(accs)
+
+print("{} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))
