@@ -1,3 +1,4 @@
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,15 +8,20 @@ from models import DenseNet
 from models import Discriminator
 from maml.data.task_generator import EncodedVisdaTask
 
+argparser = argparse.ArgumentParser()
+argparser.add_argument("--source", type=str, help="Source domain", default="real")
+argparser.add_argument("--target", type=str, help="Target domain", default="quickdraw")
+args = argparser.parse_args()
+
+source = args.source
+target = args.target
+
 accs = []
 
 train_class = list(np.random.choice(range(345), 200, replace=False))
 
 batch_size = 64
 ratio = 0.8
-
-source = "real"
-target = "infograph"
 
 domains = [source, target]
 
@@ -56,6 +62,7 @@ for epoch in range(1, n_epochs+1):
     message = "Epoch {}/{}, train acc = {:.2f}, test acc = {:.2f}".format(
         epoch, n_epochs, train_acc, test_acc)
     print(message, end="\r")
+print("")
 
 net.classifier[2] = nn.Linear(256, 10)
 
@@ -93,7 +100,7 @@ for i, task in enumerate(tasks):
     E_opt = optim.Adam(E.parameters(), lr=0.001)
     C_opt = optim.Adam(C.parameters(), lr=0.001)
     D_opt = optim.Adam(D.parameters(), lr=0.001)
-    print("{}/{}".format(i+1, len(tasks)), end="\r")
+    print("Training, task {}/{}".format(i+1, len(tasks)), end="\r")
     x_spt, x_qry, y_spt, y_qry = task
     x_spt, y_spt = x_spt.cuda(), y_spt.cuda().type(torch.int64)
     x_qry, y_qry = x_qry.cuda(), y_qry.cuda().type(torch.int64)
@@ -144,4 +151,4 @@ for i, task in enumerate(tasks):
 avg = np.mean(accs)
 std = np.std(accs)
 
-print("{} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))
+print("\nPretrained network, DANN, {} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))

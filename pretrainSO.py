@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,15 +7,20 @@ from data.dataloader import get_visda
 from data.task_generator import EncodedVisdaTask
 from models import DenseNet
 
+argparser = argparse.ArgumentParser()
+argparser.add_argument("--source", type=str, help="Source domain", default="real")
+argparser.add_argument("--target", type=str, help="Target domain", default="quickdraw")
+args = argparser.parse_args()
+
+source = args.source
+target = args.target
+
 accs = []
 
 train_class = list(np.random.choice(range(345), 200, replace=False))
 
 batch_size = 64
 ratio = 0.8
-
-source = "real"
-target = "infograph"
 
 domains = [source, target]
 
@@ -53,7 +59,7 @@ for epoch in range(1, n_epochs+1):
                                      y).sum().item()/(y.size()[0]*len(testloader))
     message = "Pretraining, epoch {}/{}, train acc = {:.2f}, test acc = {:.2f}".format(epoch, n_epochs, train_acc, test_acc)
     print(message, end="\r")
-
+print("")
 net.classifier[2] = nn.Linear(256, 10) # Adapt model to a 10 way classification problem
 
 net = net.cpu()
@@ -74,7 +80,7 @@ for i, task in enumerate(tasks):
     p_net = net.cuda()
     optimizer = optim.Adam(net.parameters(), lr=0.001)
     criterion = nn.CrossEntropyLoss()
-    print("{}/{}".format(i+1, len(tasks)), end="\r")
+    print("Training, task {}/{}".format(i+1, len(tasks)), end="\r")
     x_spt, x_qry, y_spt, y_qry = task
     x_spt, y_spt = x_spt.cuda(), y_spt.cuda().type(torch.int64)
     x_qry, y_qry = x_qry.cuda(), y_qry.cuda().type(torch.int64)
@@ -96,4 +102,4 @@ for i, task in enumerate(tasks):
 avg = np.mean(accs)
 std = np.std(accs)
 
-print("{} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))
+print("\nPretrained network, source only training, {} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))

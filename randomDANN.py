@@ -1,9 +1,18 @@
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from models import DenseNet, Discriminator
 from data.task_generator import EncodedVisdaTask
+
+argparser = argparse.ArgumentParser()
+argparser.add_argument("--source", type=str, help="Source domain", default="real")
+argparser.add_argument("--target", type=str, help="Target domain", default="quickdraw")
+args = argparser.parse_args()
+
+source = args.source
+target = args.target
 
 domain_loss = nn.BCELoss()
 class_loss = nn.CrossEntropyLoss()
@@ -18,9 +27,6 @@ task_bsize = 10
 def get_lambda(epoch, n_epochs):
     p = epoch/n_epochs
     return 2. / (1+np.exp(-10.*p)) - 1
-
-source = "real"
-target = "infograph"
 
 visda = EncodedVisdaTask(n_class, n_qry, n_spt, [source, target], "./data/json/")
 
@@ -37,7 +43,7 @@ for i, task in enumerate(tasks):
     E_opt = optim.Adam(E.parameters(), lr=0.001)
     C_opt = optim.Adam(C.parameters(), lr=0.001)
     D_opt = optim.Adam(D.parameters(), lr=0.001)
-    print("{}/{}".format(i+1, len(tasks)), end="\r")
+    print("Training, task {}/{}".format(i+1, len(tasks)), end="\r")
     x_spt, x_qry, y_spt, y_qry = task
     x_spt, y_spt = x_spt.cuda(), y_spt.cuda().type(torch.int64)
     x_qry, y_qry = x_qry.cuda(), y_qry.cuda().type(torch.int64)
@@ -49,16 +55,19 @@ for i, task in enumerate(tasks):
         E.train()
         C.train()
         D.train()
-        # Training discriminator
+
+        # Training discriminator to optimality
+
         x = torch.cat([x_spt, x_qry[:int(x_qry.size(0)/2)]], dim=0)
         h = E(x)
-
         for _ in range(n_disc):
             y = D(h.detach())
             Ld = domain_loss(y, domain_labels)
             D.zero_grad()
             Ld.backward()
             D_opt.step()
+
+        # Training encoder & classifier
 
         c = C(h[:x_spt.size(0)])
         y = D(h)
@@ -87,4 +96,4 @@ for i, task in enumerate(tasks):
 avg = np.mean(accs)
 std = np.std(accs)
 
-print("{} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))
+print("\nRandom network, DANN, {} -> {} : mean = {:.3f}, std = {:.3f}".format(source, target, avg, std))
