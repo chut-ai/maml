@@ -141,3 +141,10 @@ dmypy.json
 
 # Pytorch models
 *.pt
+
+# images
+*.png
+*.jpg
+
+# encoded images
+*.json
