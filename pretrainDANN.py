@@ -9,8 +9,10 @@ from models import Discriminator
 from maml.data.task_generator import EncodedVisdaTask
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument("--source", type=str, help="Source domain", default="real")
-argparser.add_argument("--target", type=str, help="Target domain", default="quickdraw")
+argparser.add_argument("--source", type=str,
+                       help="Source domain", default="real")
+argparser.add_argument("--target", type=str,
+                       help="Target domain", default="quickdraw")
 args = argparser.parse_args()
 
 source = args.source
@@ -29,11 +31,12 @@ trainloader, testloader = get_visda(
     batch_size, domains, ratio, train_class, path="./data/json/")
 
 net = DenseNet()  # Encoder + Classifier
+net.classifier[2] = nn.Linear(256, 200)
 net = net.cuda()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 criterion = nn.CrossEntropyLoss()
 
-# Pretraining classifier & encoder on 200 way classification problem
+# Pretraining classifier & encoder on a 200 ways classification problem
 
 n_epochs = 10
 
@@ -59,7 +62,7 @@ for epoch in range(1, n_epochs+1):
             y_hat = net(x)
             test_acc += 100*torch.eq(y_hat.argmax(dim=1),
                                      y).sum().item()/(y.size()[0]*len(testloader))
-    message = "Epoch {}/{}, train acc = {:.2f}, test acc = {:.2f}".format(
+    message = "Pretrining, epoch {}/{}, train acc = {:.2f}, test acc = {:.2f}".format(
         epoch, n_epochs, train_acc, test_acc)
     print(message, end="\r")
 print("")
@@ -72,18 +75,15 @@ del testloader
 domain_loss = nn.BCELoss()
 class_loss = nn.CrossEntropyLoss()
 
-
 n_epochs = 100
 n_class = 10
 n_qry = 200
 n_spt = 200
 task_bsize = 10
 
-
 def get_lambda(epoch, n_epochs):
     p = epoch/n_epochs
     return 2. / (1+np.exp(-10.*p)) - 1
-
 
 visda = EncodedVisdaTask(n_class, n_qry, n_spt, [
     source, target], path="./data/json/", train_class=train_class)
@@ -113,6 +113,7 @@ for i, task in enumerate(tasks):
         C.train()
 
         # Training discriminator
+
         x = torch.cat([x_spt, x_qry[:int(x_qry.size(0)/2)]], dim=0)
         h = E(x)
 
@@ -122,6 +123,8 @@ for i, task in enumerate(tasks):
             D.zero_grad()
             Ld.backward()
             D_opt.step()
+
+        # Training encoder and classifier
 
         c = C(h[:x_spt.size(0)])
         y = D(h)

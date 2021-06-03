@@ -27,6 +27,7 @@ domains = [source, target]
 trainloader, testloader = get_visda(batch_size, domains, ratio, train_class, path="./data/json/")
 
 net = DenseNet()
+net.classifier[2] = nn.Linear(256, 200) # Adapt model to a 200 way classification problem to pretrain
 net = net.cuda()
 optimizer = optim.Adam(net.parameters(), lr=0.001)
 criterion = nn.CrossEntropyLoss()
@@ -61,8 +62,6 @@ for epoch in range(1, n_epochs+1):
     print(message, end="\r")
 print("")
 net.classifier[2] = nn.Linear(256, 10) # Adapt model to a 10 way classification problem
-
-net = net.cpu()
 
 del trainloader
 del testloader

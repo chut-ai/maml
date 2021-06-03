@@ -19,18 +19,18 @@ def open_json(domain, path):
     return data
 
 
-def squeeze(labels):
+def squeeze(classes):
 
     items = []
-    for label in labels:
-        if label not in items:
-            items.append(label)
+    for cls in classes:
+        if cls not in items:
+            items.append(cls)
 
     items = sorted(items)
 
     squeezed = []
-    for label in labels:
-        squeezed.append(items.index(label))
+    for cls in classes:
+        squeezed.append(items.index(cls))
     return squeezed
 
 
@@ -56,7 +56,7 @@ class EncodedVisdaTask:
 
     def task(self, task_classes, source=None, target=None):
 
-        chosen_labels = np.random.choice(task_classes, self.n_class, False)
+        chosen_classes = np.random.choice(task_classes, self.n_class, False)
 
         if source is None:
             id1, id2 = list(np.random.choice(len(self.domains), 2, False))
@@ -64,8 +64,8 @@ class EncodedVisdaTask:
             target = self.domains[id2]
 
         spt_data = []
-        for label in chosen_labels:
-            all_instances = self.data[source][str(label)]
+        for cls in chosen_classes:
+            all_instances = self.data[source][str(cls)]
             n_img = len(all_instances)
             if self.n_spt > n_img:
                 indexes = range(n_img)
@@ -73,12 +73,12 @@ class EncodedVisdaTask:
                 indexes = np.random.choice(len(all_instances), self.n_spt, False)
             for index in indexes:
                 instance = torch.Tensor(all_instances[index])
-                spt_data.append([instance, label])
+                spt_data.append([instance, cls])
         random.shuffle(spt_data)
 
         qry_data = []
-        for label in chosen_labels:
-            all_instances = self.data[target][str(label)]
+        for cls in chosen_classes:
+            all_instances = self.data[target][str(cls)]
             n_img = len(all_instances)
             if self.n_qry > n_img:
                 indexes = range(n_img)
@@ -86,7 +86,7 @@ class EncodedVisdaTask:
                 indexes = np.random.choice(n_img, self.n_qry, False)
             for index in indexes:
                 instance = torch.Tensor(all_instances[index])
-                qry_data.append([instance, label])
+                qry_data.append([instance, cls])
         random.shuffle(qry_data)
 
         instances_spt = [elem[0] for elem in spt_data]

@@ -5,13 +5,6 @@ import torch.nn.functional as F
 import higher
 
 
-def L2_loss(net, fnet, lambdas):
-    L = 0
-    for p1, p2, lamb in zip(net.parameters(), fnet.parameters(), lambdas):
-        L += (torch.exp(-lamb)*(p1-p2)**2).sum()
-    return L
-
-
 class Meta(nn.Module):
     def __init__(self, net):
         super(Meta, self).__init__()

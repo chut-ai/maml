@@ -49,7 +49,7 @@ class VisdaDataset(Dataset):
         return value, label
 
 
-def get_visda(batch_size, domains, ratio, classes=range(1, 346), num_workers=8, path=DEFAULT_PATH):
+def get_visda(batch_size, domains, ratio, classes=range(345), num_workers=8, path=DEFAULT_PATH):
 
     dataset = VisdaDataset(domains, classes, path)
 

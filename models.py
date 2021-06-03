@@ -16,7 +16,7 @@ class DenseNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Linear(256, 200)
+            nn.Linear(256, 10)
 
         )
 
